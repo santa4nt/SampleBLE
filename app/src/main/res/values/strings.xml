@@ -6,6 +6,7 @@
 
     <string name="action_settings">Settings</string>
     <string name="action_advertise">Advertise</string>
+    <string name="action_scan">Scan</string>
 
     <string name="ble_not_supported">No support for Bluetooth Low Energy found on this device.</string>
     <string name="ble_peripheral_not_supported">No support for Bluetooth Low Energy peripheral mode.</string>
