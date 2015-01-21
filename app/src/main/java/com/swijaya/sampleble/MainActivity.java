@@ -70,6 +70,14 @@ public class MainActivity extends Activity {
 
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
+
+        mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
+
+        // check for peripheral mode support
+        if (mBluetoothAdapter.isMultipleAdvertisementSupported()) {
+            mBluetoothLeAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
+            assert (mBluetoothLeAdvertiser != null);
+        }
     }
 
     @Override
@@ -83,30 +91,23 @@ public class MainActivity extends Activity {
             return;
         }
 
-        // check for peripheral mode support
-        if (!mBluetoothAdapter.isMultipleAdvertisementSupported()) {
-            Toast.makeText(this, R.string.ble_peripheral_not_supported, Toast.LENGTH_SHORT).show();
-            finish();
-            return;
+        // instantiate BLE advertising helper objects
+        if (mBluetoothLeAdvertiser != null) {
+            mBleAdvertiseSettingsBuilder = new AdvertiseSettings.Builder()
+                    .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+                    .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+                    .setTimeout(DEFAULT_ADVERTISE_TIMEOUT)
+                    .setConnectable(false);
+            mBleAdvertiseDataBuilder = new AdvertiseData.Builder()
+                    .setIncludeDeviceName(true)
+                    .setIncludeTxPowerLevel(true);
         }
 
-        // instantiate BLE advertising helper objects
-        mBluetoothLeAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
-        assert (mBluetoothLeAdvertiser != null);
-        mBleAdvertiseSettingsBuilder = new AdvertiseSettings.Builder()
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
-                .setTimeout(DEFAULT_ADVERTISE_TIMEOUT)
-                .setConnectable(false);
-        mBleAdvertiseDataBuilder = new AdvertiseData.Builder()
-                .setIncludeDeviceName(true)
-                .setIncludeTxPowerLevel(true);
-
         // instantiate BLE scanner helper objects
-        mBluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
-        assert (mBluetoothLeScanner != null);
-        mBleScanSettingsBuilder = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
+        if (mBluetoothLeScanner != null) {
+            mBleScanSettingsBuilder = new ScanSettings.Builder()
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
+        }
     }
 
     @Override
@@ -159,6 +160,11 @@ public class MainActivity extends Activity {
     }
 
     private void startAdvertising() {
+        if (mBluetoothLeAdvertiser == null) {
+            Toast.makeText(this, R.string.ble_peripheral_not_supported, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         byte[] serviceData = "HELLO".getBytes(Charset.forName("US-ASCII"));
 
         AdvertiseSettings advertiseSettings = mBleAdvertiseSettingsBuilder.build();
@@ -182,6 +188,9 @@ public class MainActivity extends Activity {
     }
 
     private void startScanning() {
+        assert (mBluetoothLeScanner != null);
+        assert (mBleScanSettingsBuilder != null);
+
         // add a filter to only scan for advertisers with the given service UUID
         List<ScanFilter> bleScanFilters = new ArrayList<>();
         bleScanFilters.add(
